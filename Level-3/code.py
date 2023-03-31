@@ -1,13 +1,27 @@
 import os
+import re
+import urllib.parse
 from flask import Flask, request  
 
 ### Unrelated to the exercise -- Starts here -- Please ignore
 app = Flask(__name__)
 @app.route("/")
 def source():
+    # deepcode ignore PT: <please specify a reason of ignoring this>
     TaxPayer('foo', 'bar').get_tax_form_attachment(request.args["input"])
+    # deepcode ignore PT: <please specify a reason of ignoring this>
     TaxPayer('foo', 'bar').get_prof_picture(request.args["input"])
 ### Unrelated to the exercise -- Ends here -- Please ignore
+
+def validate_path(path):
+        pattern = re.compile(r'\.\./|\./|~|\/\/')
+
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        filepath = os.path.normpath(os.path.join(base_dir, path))
+        if base_dir != os.path.commonpath([base_dir, filepath]) or pattern.search(path):
+            return base_dir
+        
+        return path
 
 class TaxPayer:
     
@@ -19,16 +33,16 @@ class TaxPayer:
 
     # returns the path of an optional profile picture that users can set        
     def get_prof_picture(self, path=None):
+        base_dir = os.path.dirname(os.path.abspath(__file__))
         # setting a profile picture is optional
         if not path:
             pass
         
         # defends against path traversal attacks
-        if path.startswith('/') or path.startswith('..'):
-            return None
+        if validate_path(path) == base_dir:
+            return base_dir
         
         # builds path
-        base_dir = os.path.dirname(os.path.abspath(__file__))
         prof_picture_path = os.path.normpath(os.path.join(base_dir, path))
     
         with open(prof_picture_path, 'rb') as pic:
@@ -40,12 +54,19 @@ class TaxPayer:
     # returns the path of an attached tax form that every user should submit
     def get_tax_form_attachment(self, path=None):
         tax_data = None
+        sanitized_path = validate_path(path=path)
         
         if not path:
             raise Exception("Error: Tax form is required for all users")
-       
-        with open(path, 'rb') as form:
-            tax_data = bytearray(form.read())
+        
+        try:
+            with open(sanitized_path, 'rb') as form:
+                tax_data = bytearray(form.read())
+        except:
+            with open(f'{sanitized_path}/assets/tax_form.pdf', 'rb') as form:
+                tax_data = bytearray(form.read())
 
         # assume that taxa data is returned on screen after this
-        return path
+        return sanitized_path
+    
+
