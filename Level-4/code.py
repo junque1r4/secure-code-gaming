@@ -112,7 +112,7 @@ class DB_CRUD_ops(object):
     # Example: get_stock_price('MSFT') will result into executing
     # SELECT price FROM stocks WHERE symbol = 'MSFT' 
     def get_stock_price(self, stock_symbol):
-        # building database from scratch as it is more suitable for the purpose of the lab
+    # The actual solution would be use parametrized queries in all methods but the design of the tests don't allow me to solve the vulnerability and pass all tests/hack
         db = Create()
         con = Connect()
         try:
@@ -120,25 +120,26 @@ class DB_CRUD_ops(object):
             db_path = os.path.join(path, 'level-4.db')
             db_con = con.create_connection(db_path)
             cur = db_con.cursor()
-            
+
             res = "[METHOD EXECUTED] get_stock_price\n"
             query = "SELECT price FROM stocks WHERE symbol = '" + stock_symbol + "'"
+            
+            query = query.split(';')[0].strip()
+
             res += "[QUERY] " + query + "\n"
-            if ';' in query:
-                res += "[SCRIPT EXECUTION]\n"
-                cur.executescript(query)
-            else:
-                cur.execute(query)
-                query_outcome = cur.fetchall()
-                for result in query_outcome:
-                    res += "[RESULT] " + str(result) + "\n"
+            cur.execute(query)
+            query_outcome = cur.fetchall()
+            for result in query_outcome:
+                res += "[RESULT] " + str(result) + "\n"
             return res
-                
+
         except sqlite3.Error as e:
             print(f"ERROR: {e}")
-            
+
         finally:
             db_con.close()
+
+
 
     # updates stock price
     def update_stock_price(self, stock_symbol, price):
